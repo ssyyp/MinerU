@@ -150,13 +150,18 @@ def escape_html(input_string):
 
 
 class PaddleTableModel(object):
-    def __init__(self, ocr_engine):
+    def __init__(self, ocr_engine, device: str = "cpu"):
         slanet_plus_model_path = os.path.join(
             auto_download_and_get_model_root_path(ModelPath.slanet_plus),
             ModelPath.slanet_plus,
         )
+        use_cuda = device.startswith("cuda")
+        # Pass device so that OrtInferSession can select the appropriate
+        # execution provider (CPU or CUDA).  On CPU-only machines CUDA is
+        # silently ignored and the session runs on CPU.
         input_args = PaddleTableInput(
-            model_type="slanet_plus", model_path=slanet_plus_model_path
+            model_type="slanet_plus", model_path=slanet_plus_model_path,
+            use_cuda=use_cuda, device=device,
         )
         self.table_model = PaddleTable(input_args)
         self.ocr_engine = ocr_engine

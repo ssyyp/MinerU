@@ -255,9 +255,12 @@ def count_table_cells_physical(html_code):
 
 
 class UnetTableModel:
-    def __init__(self, ocr_engine):
+    def __init__(self, ocr_engine, device: str = "cpu"):
         model_path = os.path.join(auto_download_and_get_model_root_path(ModelPath.unet_structure), ModelPath.unet_structure)
-        wired_input_args = WiredTableInput(model_path=model_path)
+        # Pass device so that OrtInferSession can select the appropriate
+        # execution provider (CPU or CUDA).  On CPU-only machines CUDA is
+        # silently ignored and the session runs on CPU.
+        wired_input_args = WiredTableInput(model_path=model_path, device=device)
         self.wired_table_model = WiredTableRecognition(wired_input_args, ocr_engine)
         self.ocr_engine = ocr_engine
 
