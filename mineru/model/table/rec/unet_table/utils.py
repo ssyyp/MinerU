@@ -23,6 +23,7 @@ InputType = Union[str, np.ndarray, bytes, Path]
 
 class EP(Enum):
     CPU_EP = "CPUExecutionProvider"
+    CUDA_EP = "CUDAExecutionProvider"
 
 
 class OrtInferSession:
@@ -30,6 +31,8 @@ class OrtInferSession:
         self.logger = loguru.logger
 
         model_path = config.get("model_path", None)
+        # Determine the requested device ("cpu", "cuda", "cuda:0", etc.)
+        self._device: str = config.get("device", "cpu")
 
         self.had_providers: List[str] = get_available_providers()
         EP_list = self._get_ep_list()
@@ -64,6 +67,19 @@ class OrtInferSession:
             "arena_extend_strategy": "kSameAsRequested",
         }
         EP_list = [(EP.CPU_EP.value, cpu_provider_opts)]
+
+        # When the requested device is CUDA and the CUDA execution provider is
+        # available, prepend it so ONNX Runtime will prefer GPU inference.
+        # On CPU-only machines the session gracefully falls back to CPU.
+        if self._device.startswith("cuda") and EP.CUDA_EP.value in self.had_providers:
+            device_id = 0
+            if ":" in self._device:
+                try:
+                    device_id = int(self._device.split(":")[1])
+                except ValueError:
+                    pass
+            cuda_provider_opts: Dict[str, Any] = {"device_id": device_id}
+            EP_list = [(EP.CUDA_EP.value, cuda_provider_opts)] + EP_list
 
         return EP_list
 

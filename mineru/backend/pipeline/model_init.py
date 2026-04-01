@@ -46,7 +46,7 @@ def table_cls_model_init():
     return PaddleTableClsModel()
 
 
-def wired_table_model_init(lang=None):
+def wired_table_model_init(lang=None, device='cpu'):
     atom_model_manager = AtomModelSingleton()
     ocr_engine = atom_model_manager.get_atom_model(
         atom_model_name=AtomicModel.OCR,
@@ -55,11 +55,11 @@ def wired_table_model_init(lang=None):
         lang=lang,
         enable_merge_det_boxes=False
     )
-    table_model = UnetTableModel(ocr_engine)
+    table_model = UnetTableModel(ocr_engine, device=device)
     return table_model
 
 
-def wireless_table_model_init(lang=None):
+def wireless_table_model_init(lang=None, device='cpu'):
     atom_model_manager = AtomModelSingleton()
     ocr_engine = atom_model_manager.get_atom_model(
         atom_model_name=AtomicModel.OCR,
@@ -68,7 +68,7 @@ def wireless_table_model_init(lang=None):
         lang=lang,
         enable_merge_det_boxes=False
     )
-    table_model = PaddleTableModel(ocr_engine)
+    table_model = PaddleTableModel(ocr_engine, device=device)
     return table_model
 
 
@@ -130,7 +130,8 @@ class AtomModelSingleton:
         if atom_model_name in [AtomicModel.WiredTable, AtomicModel.WirelessTable]:
             key = (
                 atom_model_name,
-                lang
+                lang,
+                kwargs.get('device', 'cpu'),
             )
         elif atom_model_name in [AtomicModel.OCR]:
             key = (
@@ -175,10 +176,12 @@ def atom_model_init(model_name: str, **kwargs):
     elif model_name == AtomicModel.WirelessTable:
         atom_model = wireless_table_model_init(
             kwargs.get('lang'),
+            kwargs.get('device', 'cpu'),
         )
     elif model_name == AtomicModel.WiredTable:
         atom_model = wired_table_model_init(
             kwargs.get('lang'),
+            kwargs.get('device', 'cpu'),
         )
     elif model_name == AtomicModel.TableCls:
         atom_model = table_cls_model_init()
@@ -243,10 +246,12 @@ class MineruPipelineModel:
             self.wired_table_model = atom_model_manager.get_atom_model(
                 atom_model_name=AtomicModel.WiredTable,
                 lang=self.lang,
+                device=self.device,
             )
             self.wireless_table_model = atom_model_manager.get_atom_model(
                 atom_model_name=AtomicModel.WirelessTable,
                 lang=self.lang,
+                device=self.device,
             )
             self.table_cls_model = atom_model_manager.get_atom_model(
                 atom_model_name=AtomicModel.TableCls,
